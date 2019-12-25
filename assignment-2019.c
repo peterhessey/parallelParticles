@@ -31,11 +31,13 @@ int NumberOfBodies = 0;
 /**
  * Pointer to pointers. Each pointer in turn points to three coordinates, i.e.
  * each pointer represents one molecule/particle/body.
+ * The double asterisk is what makes it a pointer to pointers!
  */
 double** x;
 
 /**
  * Equivalent to x storing the velocities.
+ * Stores the velocity for each dimension (x,y,z)
  */
 double** v;
 
@@ -67,7 +69,11 @@ double   minDx;
  */
 void setUp(int argc, char** argv) {
   NumberOfBodies = (argc-4) / 7;
-
+  /**
+   * Initialising the partciles. x stores coordinates of all particles, 
+   * v all the velocities and 
+   * mass all the masses
+   */
   x    = new double*[NumberOfBodies];
   v    = new double*[NumberOfBodies];
   mass = new double [NumberOfBodies];
