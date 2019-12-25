@@ -185,6 +185,8 @@ void printParaviewSnapshot() {
  * This is the only operation you are allowed to change in the assignment.
  */
 void updateBody() {
+  double currentV;
+
   maxV   = 0.0;
   minDx  = std::numeric_limits<double>::max();
 
@@ -199,35 +201,73 @@ void updateBody() {
   force1[0] = 0.0;
   force2[0] = 0.0;
 
-  for (int i=1; i<NumberOfBodies; i++) {
-    const double distance = sqrt(
-      (x[0][0]-x[i][0]) * (x[0][0]-x[i][0]) +
-      (x[0][1]-x[i][1]) * (x[0][1]-x[i][1]) +
-      (x[0][2]-x[i][2]) * (x[0][2]-x[i][2])
-    );
+  // distance between the two current particles
+  double distance;
 
-    // x,y,z forces acting on particle 0
-    force0[0] += (x[i][0]-x[0][0]) * mass[i]*mass[0] / distance / distance / distance ;
-    force1[0] += (x[i][1]-x[0][1]) * mass[i]*mass[0] / distance / distance / distance ;
-    force2[0] += (x[i][2]-x[0][2]) * mass[i]*mass[0] / distance / distance / distance ;
+  // needs to be changed so that all partciles are updated
 
-    minDx = std::min( minDx,distance );
+  for (int i=0; i<NumberOfBodies; i++){
+    for (int j=0; j<NumberOfBodies; j++){
+      if (i != j){
+
+        // calculate the distance between particle i and particle j
+        distance = sqrt(
+          (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+          (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+          (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+        );
+
+        // x,y,z forces acting on particle i
+        force0[i] += (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
+        force1[i] += (x[j][1]-x[i][1]) * mass[j]*mass[i] / distance / distance / distance ;
+        force2[i] += (x[j][2]-x[i][2]) * mass[j]*mass[i] / distance / distance / distance ;
+
+
+        // keep track of the minimum distance between any two particles
+        minDx = std::min( minDx,distance );
+      }
+    } 
+    
+    // calculate new position based on velocity from last time step
+    x[i][0] = x[i][0] + timeStepSize * v[i][0];
+    x[i][1] = x[i][1] + timeStepSize * v[i][1];
+    x[i][2] = x[i][2] + timeStepSize * v[i][2];
+
+    v[i][0] = v[i][0] + timeStepSize * force0[i] / mass[i];
+    v[i][1] = v[i][1] + timeStepSize * force1[i] / mass[i];
+    v[i][2] = v[i][2] + timeStepSize * force2[i] / mass[i];
+
+    currentV = std::sqrt( v[0][0]*v[0][0] + v[0][1]*v[0][1] + v[0][2]*v[0][2] );
+
+    maxV = std::max( maxV, currentV );
   }
 
-  x[0][0] = x[0][0] + timeStepSize * v[0][0];
-  x[0][1] = x[0][1] + timeStepSize * v[0][1];
-  x[0][2] = x[0][2] + timeStepSize * v[0][2];
 
-  // These are three buggy lines of code that we will use in one of the labs
-//  x[0][3] = x[0][2] + timeStepSize * v[0][2];
-//  x[0][2] = x[0][2] + timeStepSize * v[0][2] / 0.0;
-//  x[50000000][1] = x[0][2] + timeStepSize * v[0][2] / 0.0;
+  // for (int i=1; i<NumberOfBodies; i++) {
+  //   // Calculates the distance of particle i from particle 0
+  //   const double distance = sqrt(
+  //     (x[0][0]-x[i][0]) * (x[0][0]-x[i][0]) +
+  //     (x[0][1]-x[i][1]) * (x[0][1]-x[i][1]) +
+  //     (x[0][2]-x[i][2]) * (x[0][2]-x[i][2])
+  //   );
 
-  v[0][0] = v[0][0] + timeStepSize * force0[0] / mass[0];
-  v[0][1] = v[0][1] + timeStepSize * force1[0] / mass[0];
-  v[0][2] = v[0][2] + timeStepSize * force2[0] / mass[0];
+  //   // x,y,z forces acting on particle 0
+  //   force0[0] += (x[i][0]-x[0][0]) * mass[i]*mass[0] / distance / distance / distance ;
+  //   force1[0] += (x[i][1]-x[0][1]) * mass[i]*mass[0] / distance / distance / distance ;
+  //   force2[0] += (x[i][2]-x[0][2]) * mass[i]*mass[0] / distance / distance / distance ;
 
-  maxV = std::sqrt( v[0][0]*v[0][0] + v[0][1]*v[0][1] + v[0][2]*v[0][2] );
+  //   minDx = std::min( minDx,distance );
+  // }
+
+  // x[0][0] = x[0][0] + timeStepSize * v[0][0];
+  // x[0][1] = x[0][1] + timeStepSize * v[0][1];
+  // x[0][2] = x[0][2] + timeStepSize * v[0][2];
+
+  // v[0][0] = v[0][0] + timeStepSize * force0[0] / mass[0];
+  // v[0][1] = v[0][1] + timeStepSize * force1[0] / mass[0];
+  // v[0][2] = v[0][2] + timeStepSize * force2[0] / mass[0];
+
+  // maxV = std::sqrt( v[0][0]*v[0][0] + v[0][1]*v[0][1] + v[0][2]*v[0][2] );
 
   t += timeStepSize;
 
