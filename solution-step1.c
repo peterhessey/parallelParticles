@@ -264,13 +264,15 @@ void updateBody() {
     delete[] x[i];
     delete distances[i];
   }
-  
+
   delete[] x;
   x = newCoordinates;
 
+  delete[] distances;
+
   t += timeStepSize;
 
-  delete[] distances;
+  
   delete[] force0;
   delete[] force1;
   delete[] force2;
