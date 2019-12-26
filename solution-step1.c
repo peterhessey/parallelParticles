@@ -131,9 +131,6 @@ void openParaviewVideoFile() {
 }
 
 
-
-
-
 /**
  * This operation is not to be changed in the assignment.
  */
@@ -189,8 +186,11 @@ void updateBody() {
   double** newCoordinates;
   newCoordinates = new double*[NumberOfBodies];
 
+  // variables for keeping track of the max velocity of any particle in the current frame
   double currentV;
   maxV   = 0.0;
+
+  // variable for tracking the minimum distance between any two particles in the frame
   minDx  = std::numeric_limits<double>::max();
 
   // force0 = force along x direction
@@ -200,8 +200,10 @@ void updateBody() {
   double* force1 = new double[NumberOfBodies];
   double* force2 = new double[NumberOfBodies];
 
-  // needs to be changed so that all partciles are updated
+  double** distances;
+  distances = new double*[NumberOfBodies];
 
+  // update each particle i
   for (int i=0; i<NumberOfBodies; i++){
     // initialising force values
     force0[i] = 0.0;
@@ -209,19 +211,30 @@ void updateBody() {
     force2[i] = 0.0;
 
     newCoordinates[i] = new double[3];
-    // std::cout << "Velocity of particle " << i << ": ";
-    // std::cout << std::sqrt( v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2] ) << "\n";
+
+    distances[i] = new double[NumberOfBodies];
+
+    // loop through all other particles
     for (int j=0; j<NumberOfBodies; j++){
       if (i != j){
+        
+        double distance;
+        
+        // if distance hasn't been calculated yet
+        if (i < j){ 
+          // calculate the distance between i and j
+          distance = sqrt(
+            (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+            (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+            (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+          );
+          distances[i][j] = distance;
+        // if distance already calculated
+        }else{ 
+          distance = distances[j][i];
+        }
 
-        // calculate the distance between particle i and particle j
-        const double distance = sqrt(
-          (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-          (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-          (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-        );
-
-        // std::cout << "Distance of particle " << i << " from particle " << j << ": " << distance << "\n";
+       // std::cout << "Distance from particle " << i << " to particle " << j << ": " << distance << "\n";
 
         // x,y,z forces acting on particle i
         force0[i] += (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
@@ -258,6 +271,7 @@ void updateBody() {
 
   t += timeStepSize;
 
+  delete[] distances;
   delete[] force0;
   delete[] force1;
   delete[] force2;
