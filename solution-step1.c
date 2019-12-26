@@ -260,7 +260,11 @@ void updateBody() {
   }
 
   // tidying up memory and resetting variables
-
+  for (int i=0; i<NumberOfBodies; i++){
+    delete[] x[i];
+    delete distances[i];
+  }
+  
   delete[] x;
   x = newCoordinates;
 
