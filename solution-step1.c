@@ -177,7 +177,6 @@ void printParaviewSnapshot() {
 }
 
 
-
 /**
  * This is the only operation you are allowed to change in the assignment.
  */
