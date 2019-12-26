@@ -181,10 +181,16 @@ void printParaviewSnapshot() {
  * This is the only operation you are allowed to change in the assignment.
  */
 void updateBody() {
+  // used to temporarily store the next set of coordinates
+  double** newCoordinates;
+  newCoordinates = new double*[NumberOfBodies];
 
   // variables for keeping track of the max velocity of any particle in the current frame
   double currentV;
   maxV   = 0.0;
+
+  // diameter of the particles, used for detecting collisions
+  double diameter = 0.1;
 
   // variable for tracking the minimum distance between any two particles in the frame
   minDx  = std::numeric_limits<double>::max();
@@ -196,48 +202,61 @@ void updateBody() {
   double* force1 = new double[NumberOfBodies];
   double* force2 = new double[NumberOfBodies];
 
+  double** distances;
+  distances = new double*[NumberOfBodies];
+
+  // update each particle i
   for (int i=0; i<NumberOfBodies; i++){
+    // initialising force values
     force0[i] = 0.0;
     force1[i] = 0.0;
     force2[i] = 0.0;
-  }
 
-  // update each particle i
-  for (int i=0; i<NumberOfBodies; i++){    
+    newCoordinates[i] = new double[3];
+
+    distances[i] = new double[NumberOfBodies];
+
     // loop through all other particles
-    for (int j=i+1; j<NumberOfBodies; j++){
-      
-      double distance; 
-      
-      distance = sqrt(
-        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-      );
-      
-      double force0Change = (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
-      double force1Change = (x[j][1]-x[i][1]) * mass[j]*mass[i] / distance / distance / distance ;
-      double force2Change = (x[j][2]-x[i][2]) * mass[j]*mass[i] / distance / distance / distance ;
+    for (int j=0; j<NumberOfBodies; j++){
+      if (i != j){
+        
+        double distance;
+        
+        // if distance hasn't been calculated yet
+        if (i < j){ 
+          // calculate the distance between i and j
+          distance = sqrt(
+            (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+            (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+            (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+          );
+          distances[i][j] = distance;
+        // if distance already calculated
+        }else{ 
+          distance = distances[j][i];
+        }
 
-      // x,y,z forces acting on particle i
-      force0[i] += force0Change;
-      force0[j] -= force0Change;
+        // check for a collision between particle 1 and 2
+        if (distance < 2 * diameter) {
+          
+        }
 
-      force1[i] += force1Change;
-      force1[j] -= force1Change;
+        // x,y,z forces acting on particle i
+        force0[i] += (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
+        force1[i] += (x[j][1]-x[i][1]) * mass[j]*mass[i] / distance / distance / distance ;
+        force2[i] += (x[j][2]-x[i][2]) * mass[j]*mass[i] / distance / distance / distance ;
 
-      force2[i] += force2Change;
-      force2[j] -= force2Change;
-
-      // keep track of the minimum distance between any two particles
-      minDx = std::min( minDx,distance );
-
+        // keep track of the minimum distance between any two particles
+        minDx = std::min( minDx,distance );
+      }
     }
 
     // calculate new position based on velocity from last time step
-    x[i][0] = x[i][0] + timeStepSize * v[i][0];
-    x[i][1] = x[i][1] + timeStepSize * v[i][1];
-    x[i][2] = x[i][2] + timeStepSize * v[i][2];
+    newCoordinates[i][0] = x[i][0] + timeStepSize * v[i][0];
+    newCoordinates[i][1] = x[i][1] + timeStepSize * v[i][1];
+    newCoordinates[i][2] = x[i][2] + timeStepSize * v[i][2];
+
+  }
 
 
     v[i][0] = v[i][0] + timeStepSize * force0[i] / mass[i];
@@ -250,7 +269,19 @@ void updateBody() {
     
   }
 
+  // tidying up memory and resetting variables
+  for (int i=0; i<NumberOfBodies; i++){
+    delete[] x[i];
+    delete distances[i];
+  }
+
+  delete[] x;
+  x = newCoordinates;
+
+  delete[] distances;
+
   t += timeStepSize;
+
   
   delete[] force0;
   delete[] force1;
