@@ -234,8 +234,6 @@ void updateBody() {
           distance = distances[j][i];
         }
 
-       // std::cout << "Distance from particle " << i << " to particle " << j << ": " << distance << "\n";
-
         // x,y,z forces acting on particle i
         force0[i] += (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
         force1[i] += (x[j][1]-x[i][1]) * mass[j]*mass[i] / distance / distance / distance ;
@@ -257,14 +255,12 @@ void updateBody() {
     v[i][2] = v[i][2] + timeStepSize * force2[i] / mass[i];
   
     currentV = std::sqrt( v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2] );
-    
-    //std::cout << "Particle " << i << "'s mass: " << mass[i] << "\n";
-    // std::cout << "Force on particle " << i << ": " << std::sqrt( force0[i]*force0[i] + force1[i]*force1[i] + force2[i]*force2[i]) << "\n";
-    // std::cout << "Particle " << i << "'s new velocity: " << currentV << "\n";
 
     maxV = std::max( maxV, currentV );
     
   }
+
+  // tidying up memory and resetting variables
 
   delete[] x;
   x = newCoordinates;
@@ -276,35 +272,6 @@ void updateBody() {
   delete[] force1;
   delete[] force2;
 }
-
-  // for (int i=1; i<NumberOfBodies; i++) {
-  //   // Calculates the distance of particle i from particle 0
-  //   const double distance = sqrt(
-  //     (x[0][0]-x[i][0]) * (x[0][0]-x[i][0]) +
-  //     (x[0][1]-x[i][1]) * (x[0][1]-x[i][1]) +
-  //     (x[0][2]-x[i][2]) * (x[0][2]-x[i][2])
-  //   );
-
-  //   // x,y,z forces acting on particle 0
-  //   force0[0] += (x[i][0]-x[0][0]) * mass[i]*mass[0] / distance / distance / distance ;
-  //   force1[0] += (x[i][1]-x[0][1]) * mass[i]*mass[0] / distance / distance / distance ;
-  //   force2[0] += (x[i][2]-x[0][2]) * mass[i]*mass[0] / distance / distance / distance ;
-
-  //   minDx = std::min( minDx,distance );
-  // }
-
-  // x[0][0] = x[0][0] + timeStepSize * v[0][0];
-  // x[0][1] = x[0][1] + timeStepSize * v[0][1];
-  // x[0][2] = x[0][2] + timeStepSize * v[0][2];
-
-  // v[0][0] = v[0][0] + timeStepSize * force0[0] / mass[0];
-  // v[0][1] = v[0][1] + timeStepSize * force1[0] / mass[0];
-  // v[0][2] = v[0][2] + timeStepSize * force2[0] / mass[0];
-
-  // maxV = std::sqrt( v[0][0]*v[0][0] + v[0][1]*v[0][1] + v[0][2]*v[0][2] );
-
-  // tidying up memory and restting variables
-
 
 
 /**
