@@ -104,10 +104,10 @@ void setUp(int argc, char** argv) {
     }
   }
 
-  std::cout << "created setup with " << NumberOfBodies << " bodies" << std::endl;
+  //std::cout << "created setup with " << NumberOfBodies << " bodies" << std::endl;
   
   if (tPlotDelta<=0.0) {
-    std::cout << "plotting switched off" << std::endl;
+    //std::cout << "plotting switched off" << std::endl;
     tPlot = tFinal + 1.0;
   }
   else {
@@ -218,11 +218,18 @@ void updateBody() {
       // check for a collision
       if (distance < diameter) {
   			
+           
+        
         // update new particle's velocity and position halfway between each
         for (int k = 0; k < 3; k++) {
           x[i][k] = (x[i][k] + x[j][k]) / 2;
           v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
         }
+
+        //output for report
+        std::cout << x[i][0] << "," << x[i][1] << "," << x[i][2] << ",";  
+
+
   			// update new particle's mass
         mass[i] += mass[j];
 
@@ -268,7 +275,7 @@ void updateBody() {
   if (NumberOfBodies == 1){
     // terminate
     t = tFinal;
-    std::cout << "\n\n\nFinal particle coordinates: " << x[0][0] << ", " << x[0][1] << ", " << x[0][2] << "\n\n\n";
+    //std::cout << "\n\n\nFinal particle coordinates: " << x[0][0] << ", " << x[0][1] << ", " << x[0][2] << "\n\n\n";
   }
 
   t += timeStepSize;
