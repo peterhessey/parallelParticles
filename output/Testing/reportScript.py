@@ -1,6 +1,7 @@
 import subprocess
 import os
 import math
+import numpy as npdi
 from matplotlib import pyplot as plt
 
 #  0.01 100.0 1e-8 0 0 0 0 0 0 4 3 0 0 0 0 0 5 3 4 0 0 0 0 3
@@ -15,15 +16,28 @@ args = ['reportOutput.exe', '-0.01', '100.0', '1e-6', '0', '0', '0', '0', '0',
 
 distances = []
 times = []
+
+min_distance = float('inf')
+max_distance = float('-inf')
+
+min_time = float('inf')
+max_time = float('-inf')
+
 # will increase to 9 once testing complete!
-for exponent in range(5,7,1):
-    for mantissa in range(10, 99, 1):
+for exponent in range(5,10,1):
+    for mantissa in range(99, 9, -1):
 
         time = (mantissa/10) * (10 ** (-1 * exponent))
         args[4] = str(time)    
         print('Testing with time step %s' % time)
 
-        times.append(math.log10(-1 * math.log10(time)))
+        new_time = (math.log10(-1 * math.log10(time)))
+
+        if new_time < min_time:
+            min_time = new_time
+
+        if new_time > max_time:
+            max_time = new_time
 
 
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -36,9 +50,26 @@ for exponent in range(5,7,1):
         )
         print('Distance between collision points: %s' %distance)
 
-        distances.append(math.log(-1 * math.log(distance)))
+        new_distance = -1*math.log(-1 * math.log(distance))
+
+        if new_distance < min_distance:
+            min_distance = new_distance
+    
+        if new_distance > max_distance:
+            max_distance = new_distance
+
+        times.append(new_time)
+        distances.append(new_distance)
 
 
-plt.scatter(distances, times)
-plt.title('Time step size against Distance between collision points')
+result_graph = plt.figure()
+axes = result_graph.add_axes([0.1,0.1,0.8,0.8])
+axes.scatter(times, distances)
+
+# axes.set_xlim(min_time,max_time)
+# axes.set_ylim(min_distance, max_distance)
+
+plt.xlabel('Time step size')
+plt.ylabel('Distace between collision points')
+
 plt.show()
