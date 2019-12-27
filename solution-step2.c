@@ -215,25 +215,27 @@ void updateBody() {
       // track minimum distance
 		  minDx = std::min( minDx,distance );
 
+      // check for a collision
       if (distance < diameter) {
   			
+        // update new particle's velocity
         for (int k = 0; k < 3; k++) {
           v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
         }
-  			
+  			// update new particle's mass
         mass[i] += mass[j];
 
-  		
+  		  // remove particle j
         for (int k = j; k < NumberOfBodies; k++) {
-
           x[k] = x[k+1];
           v[k] = v[k+1];
           mass[k] = mass[k+1];
-        
         }	
-			
-          NumberOfBodies--;    
-          j--;
+
+        // decrement counters (j so that the old j+1 doesn't get skipped!)
+        NumberOfBodies--;    
+        j--;
+
       }else{
         // apply forces to each dimension k
         for (int k = 0; k < 3; k++) {
@@ -260,43 +262,10 @@ void updateBody() {
 	  // track highest current velocity
 	  maxV = std::max(maxV, std::sqrt(absV));
   }
-  
-  // // perform collision checks
-  // for (int i = 0; i < NumberOfBodies; i++) {
-  // 	  for (int j = i + 1;  j < NumberOfBodies; j++) {
 
-  // 		  const double distance = sqrt(
-  // 		        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-  // 		        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-  // 		        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-  // 		      );
- 		  
-  // 		  // if (distance < diameter) {
-  			
-  //       //   for (int k = 0; k < 3; k++) {
-  //       //     v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
-  //       //   }
-  			
-  //       //   mass[i] += mass[j];
-
-  		
-  //       // for (int k = j; k < NumberOfBodies; k++) {
-
-  //       //   x[k] = x[k+1];
-  //       //   v[k] = v[k+1];
-  //       //   mass[k] = mass[k+1];
-          
-
-  //       // }	
-			
-  //       //   NumberOfBodies--;    
-			
-  // 		  // }
-  		  
-  // 	  }      
-  //   }
-  // if only one particle left
+  // check to see if only one particle left
   if (NumberOfBodies == 1){
+    // terminate
     t = tFinal;
     std::cout << "\n\n\nFinal particle coordinates: " << x[0][0] << ", " << x[0][1] << ", " << x[0][2] << "\n\n\n";
   }
