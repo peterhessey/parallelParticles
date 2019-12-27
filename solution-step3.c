@@ -156,7 +156,7 @@ void printParaviewSnapshot() {
       << " <Piece NumberOfPoints=\"" << NumberOfBodies << "\">" << std::endl
       << "  <Points>" << std::endl
       << "   <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">";
-//      << "   <DataArray type=\"Float32\" NumberOfComponents=\"3\" format=\"ascii\">";
+
 
   for (int i=0; i<NumberOfBodies; i++) {
     out << x[i][0]
@@ -181,13 +181,82 @@ void printParaviewSnapshot() {
  * This is the only operation you are allowed to change in the assignment.
  */
 void updateBody() {
-	// track initial body count for tidying up memory at the end (NumberOfBodies decreases on collision)
+
+  // track initial body count for tidying up memory at the end (NumberOfBodies decreases on collision)
   int startBodyCount = NumberOfBodies;
   // diameter of the particles
   double diameter = 0.01;
 
-  // variable to track the highest current velocity 
-  maxV   = 0.0;
+
+  // initliaising buckets
+  double vBucket;
+  int numberOfBuckets = 2;
+  int** buckets = new int*[numberOfBuckets];
+  
+  // create bucket, store value at first index which is the array size (how many particles the buckets contains + 1) 
+  for (int i=0; i<numberOfBuckets; i++){
+    buckets[i] = new int[1]{1};
+  }
+
+
+
+  if (maxV == 0){
+    for (int i=0; i<NumberOfBodies; i++){
+      int oldSize = buckets[0][0];
+      int newSize = oldSize +1;
+
+      int* newArray = new int[newSize];
+
+      std::copy(buckets[0], buckets[0] + oldSize, newArray);
+      delete[] buckets[0];
+
+      buckets[0] = newArray;
+      buckets[0][0] = newSize;
+      buckets[0][oldSize] = i;
+    }
+
+    for (int i=1; i<NumberOfBodies + 1; i++){
+      std::cout << buckets[0][i] << "\n";
+    }
+  }else{
+
+    vBucket = maxV / numberOfBuckets;
+    std::cout << "vBucket value: " << vBucket << "\n";
+    // not super efficient sorting method but will work for now :S
+
+    
+    for (int i=0; i<NumberOfBodies; i++){
+      for (int j=0; j<numberOfBuckets; j++){
+        double particleVel = std::sqrt(
+          (v[i][0] * v[i][0]) +
+          (v[i][1] * v[i][1]) +
+          (v[i][2] * v[i][2])
+        );
+        
+        //std::cout << "Particle " << j << " has velocity: " << particleVel << "\n";
+
+        if ((particleVel >= j*vBucket) && (particleVel <= (j+1)*vBucket)){
+          std::cout << "Adding particle " << i << " to bucket " << j << "\n";
+          int oldSize = buckets[j][0];
+          int newSize = oldSize +1;
+
+          int* newArray = new int[newSize];
+
+          std::copy(buckets[j], buckets[j] + oldSize, newArray);
+          delete[] buckets[j];
+
+          buckets[j] = newArray;
+          buckets[j][0] = newSize;
+          buckets[j][oldSize] = i;
+        }
+      }
+    }
+    std::cout<< "Buckets sorted\n";
+  }
+	// if (vBucket != -1){
+    
+  // }
+
   // variable to track the minimum distance between any two particles
   minDx  = std::numeric_limits<double>::max();
   
@@ -206,7 +275,7 @@ void updateBody() {
 	  for (int j = i + 1;  j < NumberOfBodies; j++) {
 		  
 		  // Calculate the distance from particle i to particle j
-		  const double distance = sqrt(
+		  const double distance = std::sqrt(
 		        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
 		        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
 		        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
@@ -285,6 +354,7 @@ void updateBody() {
  * Not to be changed in assignment.
  */
 int main(int argc, char** argv) {
+
   if (argc==1) {
     std::cerr << "usage: " + std::string(argv[0]) + " snapshot final-time dt objects" << std::endl
               << "  snapshot        interval after how many time units to plot. Use 0 to switch off plotting" << std::endl
