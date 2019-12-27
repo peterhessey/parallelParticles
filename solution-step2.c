@@ -181,143 +181,133 @@ void printParaviewSnapshot() {
  * This is the only operation you are allowed to change in the assignment.
  */
 void updateBody() {
-
-  // variables for keeping track of the max velocity of any particle in the current frame
-  double currentV;
-  maxV   = 0.0;
-
-  // variable for tracking the minimum distance between any two particles in the frame
-  minDx  = std::numeric_limits<double>::max();
-
+	// track initial body count for tidying up memory at the end (NumberOfBodies decreases on collision)
+  int startBodyCount = NumberOfBodies;
+  // diameter of the particles
   double diameter = 0.01;
-  bool oneParticleLeft = false;
 
-  // force0 = force along x direction
-  // force1 = force along y direction
-  // force2 = force along z direction
-  double* force0 = new double[NumberOfBodies];
-  double* force1 = new double[NumberOfBodies];
-  double* force2 = new double[NumberOfBodies];
-
-  for (int i=0; i<NumberOfBodies; i++){
-    force0[i] = 0.0;
-    force1[i] = 0.0;
-    force2[i] = 0.0;
-  }
-
-  for (int i=0; i<NumberOfBodies; i++){
-    for (int j=i+1; j<NumberOfBodies; j++){
-      double distance; 
-      
-      distance = sqrt(
-        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-      );
-
-
-      double force0Change = (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
-      double force1Change = (x[j][1]-x[i][1]) * mass[j]*mass[i] / distance / distance / distance ;
-      double force2Change = (x[j][2]-x[i][2]) * mass[j]*mass[i] / distance / distance / distance ;
-
-      // x,y,z forces acting on particle i
-      force0[i] += force0Change;
-      force0[j] -= force0Change;
-
-      force1[i] += force1Change;
-      force1[j] -= force1Change;
-
-      force2[i] += force2Change;
-      force2[j] -= force2Change;
-
-    }
-
-    // calculate new position based on velocity from last time step
-    x[i][0] = x[i][0] + timeStepSize * v[i][0];
-    x[i][1] = x[i][1] + timeStepSize * v[i][1];
-    x[i][2] = x[i][2] + timeStepSize * v[i][2];
-
-
-    v[i][0] = v[i][0] + timeStepSize * force0[i] / mass[i];
-    v[i][1] = v[i][1] + timeStepSize * force1[i] / mass[i];
-    v[i][2] = v[i][2] + timeStepSize * force2[i] / mass[i];
+  // variable to track the highest current velocity 
+  maxV   = 0.0;
+  // variable to track the minimum distance between any two particles
+  minDx  = std::numeric_limits<double>::max();
   
-    currentV = std::sqrt( v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2] );
-
-    maxV = std::max( maxV, currentV );
-
+  // matrix that stores the forces acting on all particles in the scene
+  double** forceMatrix;
+  forceMatrix = new double*[NumberOfBodies];
+  
+  for (int i = 0; i < NumberOfBodies; i++) {
+	  // one entry for each dimension (x,y,z)
+	  forceMatrix[i] = new double[3]{0.0, 0.0, 0.0};
   }
+  
+  // loop through all particles
+  for (int i = 0; i < NumberOfBodies; i++) {
+    // loop through all particles that i hasn't been compared to yet
+	  for (int j = i + 1;  j < NumberOfBodies; j++) {
+		  
+		  // Calculate the distance from particle i to particle j
+		  const double distance = sqrt(
+		        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+		        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+		        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+		      );
+  
+      // track minimum distance
+		  minDx = std::min( minDx,distance );
 
-  // update each particle i
-  for (int i=0; i<NumberOfBodies; i++){    
-    // loop through all other particles
-    for (int j=i+1; j<NumberOfBodies; j++){
-      
-      double distance; 
-      
-      distance = sqrt(
-        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-      );
-      
-      if (distance < diameter){
-        std::cout << "\n \n Collision detected between particle " << i << " and particle " << j << "\n \n \n";
-        // new particle's mass
+      if (distance < diameter) {
+  			
+        for (int k = 0; k < 3; k++) {
+          v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
+        }
+  			
         mass[i] += mass[j];
 
-        //calculating new particle's velocity
+  		
+        for (int k = j; k < NumberOfBodies; k++) {
 
-        double* newPos = new double[3];
-        double* newVel = new double[3];
-        
-        for (int k=0; k<3; k++){
-          newPos[k] = x[j][k];
-          newVel[k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
-        }\
-
-        delete[] x[i];
-        x[i] = newPos;
-
-        // keeping memory tidy!
-        delete[] v[i]; 
-        v[i] = newVel;
-
-        // removing particle j from existence
-        for (int k=j; k<NumberOfBodies-1; k++){
-          mass[k] = mass[k+1];
-          v[k] = v[k+1];
           x[k] = x[k+1];
+          v[k] = v[k+1];
+          mass[k] = mass[k+1];
         
+        }	
+			
+          NumberOfBodies--;    
+          j--;
+      }else{
+        // apply forces to each dimension k
+        for (int k = 0; k < 3; k++) {
+        
+          double force = (x[j][k]-x[i][k]) * mass[j] * mass[i] / distance / distance / distance ;
+          forceMatrix[i][k] += force;
+          forceMatrix[j][k] -= force;
+          
         }
-
-        // decrement counters to accomodate for removed particle
-        NumberOfBodies -= 1;
-        //j--;
-
-        // // if only one particle left
-        if (NumberOfBodies == 1){
-          oneParticleLeft = true;
-          break;
-        }
+      }		
       
-        // keep track of the minimum distance between any two particles
-      }
-      minDx = std::min( minDx,distance );
-    }
-    if (oneParticleLeft == true){
-      t = tFinal;
-      break;
-    }
+	  }
+
+    double absV = 0;
+	  
+    // update position and velocity of particle in each dimension k
+	  for (int k = 0; k < 3; k++) {
+
+		  x[i][k] = x[i][k] + timeStepSize * v[i][k];  
+		  v[i][k] = v[i][k] + timeStepSize * forceMatrix[i][k] / mass[i];
+		  absV += v[i][k] * v[i][k];
+		  
+	  }
+	  // track highest current velocity
+	  maxV = std::max(maxV, std::sqrt(absV));
+  }
+  
+  // // perform collision checks
+  // for (int i = 0; i < NumberOfBodies; i++) {
+  // 	  for (int j = i + 1;  j < NumberOfBodies; j++) {
+
+  // 		  const double distance = sqrt(
+  // 		        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+  // 		        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+  // 		        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+  // 		      );
+ 		  
+  // 		  // if (distance < diameter) {
+  			
+  //       //   for (int k = 0; k < 3; k++) {
+  //       //     v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
+  //       //   }
+  			
+  //       //   mass[i] += mass[j];
+
+  		
+  //       // for (int k = j; k < NumberOfBodies; k++) {
+
+  //       //   x[k] = x[k+1];
+  //       //   v[k] = v[k+1];
+  //       //   mass[k] = mass[k+1];
+          
+
+  //       // }	
+			
+  //       //   NumberOfBodies--;    
+			
+  // 		  // }
+  		  
+  // 	  }      
+  //   }
+  // if only one particle left
+  if (NumberOfBodies == 1){
+    t = tFinal;
+    std::cout << "\n\n\nFinal particle coordinates: " << x[0][0] << ", " << x[0][1] << ", " << x[0][2] << "\n\n\n";
   }
 
   t += timeStepSize;
-  
-  delete[] force0;
-  delete[] force1;
-  delete[] force2;
-}
 
+  for (int i=0; i<startBodyCount; i++){
+    delete[] forceMatrix[i];
+  }
+  delete[] forceMatrix;
+}
 
 /**
  * Main routine.
