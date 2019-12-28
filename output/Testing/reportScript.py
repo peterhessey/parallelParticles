@@ -24,7 +24,7 @@ min_time = float('inf')
 max_time = float('-inf')
 
 with open('./Results/output.txt', 'w') as results_file:
-    for exponent in range(7,8,1):
+    for exponent in range(7,10,1):
         for mantissa in range(99, 9, -1):
                 
             time = (mantissa/10) * (10 ** (-1 * exponent))
@@ -72,7 +72,7 @@ axes.scatter(times, distances)
 # axes.set_xlim(min_time,max_time)
 axes.set_ylim(min_distance - (max_distance - min_distance) * 0.1, max_distance  + (max_distance - min_distance) * 0.1)
 
-plt.xlabel('Time step size')
-plt.ylabel('Distace between collision points')
+plt.xlabel('Log-Log Time step size')
+plt.ylabel('Log-Log Distace between collision points')
 
 plt.show()
