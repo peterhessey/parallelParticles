@@ -183,13 +183,10 @@ void printParaviewSnapshot() {
  */
 void updateBody() {
 
-  /**
-   * Instead of creating 'actual' bucket objects and storing values in them, I 
-   * have instead allocated a bucket value to each particle. This is much more 
-   * efficient as one can iterate through the particles with ease and with 
-   * far fewer repititions. Furthermore, change the delta T and iterating more
-   * times can be achieved trivially with a while loop and a counter.
-   * /
+  //  * Instead of creating 'actual' bucket objects and storing values in them, I 
+  //  * have instead allocated a bucket value to each particle. This is much more 
+  //  * efficient as one can iterate through the particles with ease and with 
+  //  * far fewer repititions. Furthermore, the
 
 
 
@@ -238,10 +235,6 @@ void updateBody() {
     }
   }
 
-  // for (int i=0; i<NumberOfBodies; i++){
-  //   std::cout << "Particle " << i << " is in bucket " << bucketArray[i][1] << "\n";
-  // }
-  // std::cout << "\n\n";
 
   // variable to track the minimum distance between any two particles
   minDx  = std::numeric_limits<double>::max();
