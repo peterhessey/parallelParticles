@@ -200,7 +200,7 @@ void updateBody() {
   int** bucketArray = new int*[NumberOfBodies];
 
   for (int i=0; i<NumberOfBodies; i++){
-    bucketArray[i] = new int[2]{i, -1};
+    bucketArray[i] = new int;
   }
 
   // if first iteration of program, put all particles into first bucket
@@ -229,7 +229,7 @@ void updateBody() {
       for (int j=0; j<numberOfBuckets; j++){
 
         if (((particleVel >= j*vBucket) && (particleVel < (j+1)*vBucket)) || ((j == numberOfBuckets -1) && particleVel >= maxV)){
-          bucketArray[i][1] = j;
+          bucketArray[i] = j;
         }
       }
     }
@@ -253,7 +253,7 @@ void updateBody() {
   for (int i = 0; i < NumberOfBodies; i++) {
     
     // set up looping based on buckets
-    int timeStepsToTake = bucketArray[i][1] + 1;
+    int timeStepsToTake = pow(2, (bucketArray[i]));
     double deltaT = timeStepSize / timeStepsToTake;
 
     while (timeStepsToTake > 0){
