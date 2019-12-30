@@ -196,7 +196,7 @@ void updateBody() {
   double distance;
 
   // diameter of the particles
-  double diameter = 0.1;
+  double diameter = 0.01;
 
   // initialising buckets
   int numberOfBuckets = 10;
