@@ -68,6 +68,7 @@ double   minDx;
  *
  * This operation is not to be changed in the assignment.
  */
+
 void setUp(int argc, char** argv) {
   NumberOfBodies = (argc-4) / 7;
   /**
@@ -186,33 +187,34 @@ void updateBody() {
   //  * Instead of creating 'actual' bucket objects and storing values in them, I 
   //  * have instead allocated a bucket value to each particle. This is much more 
   //  * efficient as one can iterate through the particles with ease and with 
-  //  * far fewer repititions. Furthermore, the
-
-
+  //  * far fewer repititions. 
 
   // track initial body count for tidying up memory at the end (NumberOfBodies decreases on collision)
   int startBodyCount = NumberOfBodies;
+
+  // double for storing distance
+  double distance;
+
   // diameter of the particles
   double diameter = 0.01;
 
   // initialising buckets
   int numberOfBuckets = 2;
-  int** bucketArray = new int*[NumberOfBodies];
+  int* bucketArray = new int[NumberOfBodies];
 
   for (int i=0; i<NumberOfBodies; i++){
-    bucketArray[i] = new int;
+    bucketArray[i] = -1;
   }
 
   // if first iteration of program, put all particles into first bucket
   if (maxV == 0){
     for (int i=0; i<NumberOfBodies; i++){
       // put all bodies in bucket 0
-      bucketArray[i][1] = 0;
+      bucketArray[i] = 0;
     }
   
   }else{
 
-    // debugging purposes only
 
     double vBucket = maxV / numberOfBuckets;
 
@@ -254,71 +256,86 @@ void updateBody() {
     
     // set up looping based on buckets
     int timeStepsToTake = pow(2, (bucketArray[i]));
-    double deltaT = timeStepSize / timeStepsToTake;
-
-    while (timeStepsToTake > 0){
-      // loop through all particles that i hasn't been compared to yet
-      for (int j = i + 1;  j < NumberOfBodies; j++) {
-        
-        // Calculate the distance from particle i to particle j
-        const double distance = std::sqrt(
-              (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-              (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-              (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-            );
-    
-        // track minimum distance
-        minDx = std::min( minDx,distance );
-
-        // check for a collision
-        if (distance < diameter) {
-          
-          // update new particle's velocity and position halfway between each
-          for (int k = 0; k < 3; k++) {
-            x[i][k] = (x[i][k] + x[j][k]) / 2;
-            v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
-          }
-          // update new particle's mass
-          mass[i] += mass[j];
-
-          // remove particle j
-          for (int k = j; k < NumberOfBodies; k++) {
-            x[k] = x[k+1];
-            v[k] = v[k+1];
-            mass[k] = mass[k+1];
-          }	
-
-          // decrement counters (j so that the old j+1 doesn't get skipped!)
-          NumberOfBodies--;    
-          j--;
-
-        }else{
-          // apply forces to each dimension k
-          for (int k = 0; k < 3; k++) {
-          
-            double force = (x[j][k]-x[i][k]) * mass[j] * mass[i] / distance / distance / distance ;
-            forceMatrix[i][k] += force;
-            forceMatrix[j][k] -= force;
-            
-          }
-        }		
-        
-      }
-
-      double absV = 0;
+    int timeStepsRemaining = timeStepsToTake;
+    double miniTimeStepSize = timeStepSize / timeStepsToTake;
+  
+    // loop through all particles that i hasn't been compared to yet, calculate forces
+    for (int j = i + 1;  j < NumberOfBodies; j++) {
       
-      // update position and velocity of particle in each dimension k
-      for (int k = 0; k < 3; k++) {
+      // Calculate the distance from particle i to particle j
+      distance = std::sqrt(
+            (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+            (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+            (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+          );
+  
+      // track minimum distance
+      minDx = std::min( minDx,distance );
 
-        x[i][k] = x[i][k] + deltaT * v[i][k];  
-        v[i][k] = v[i][k] + deltaT * forceMatrix[i][k] / mass[i];
-        absV += v[i][k] * v[i][k];
+      
+      // apply forces to each dimension k
+      for (int k = 0; k < 3; k++) {
+      
+        double force = (x[j][k]-x[i][k]) * mass[j] * mass[i] / distance / distance / distance ;
+        forceMatrix[i][k] += force;
+        forceMatrix[j][k] -= force;
         
       }
-      // track highest current velocity
+    }
 
-      maxV = std::max(maxV, std::sqrt(absV));
-      timeStepsToTake -= 1;
+    double absV = 0;
+
+    for (int k=0; k<3; k++){
+      v[i][k] = v[i][k] + timeStepSize * forceMatrix[i][k] / mass[i];
+      absV += v[i][k] * v[i][k];
+    }
+    maxV = std::max(maxV, std::sqrt(absV));
+
+    // perform mini time steps, update position and check for collision
+    while (timeStepsRemaining > 0){
+      // update particle position
+      for (int k=0; k<3; k++){
+        x[i][k] += miniTimeStepSize * v[i][k];
+      }
+
+      // check for collision
+      for (int j=0; j<NumberOfBodies; j++){
+        // if i and j are not the same particle
+        if (i != j){          
+          distance = std::sqrt(
+            (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+            (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+            (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+          );
+
+
+          // if a collision occurs
+          if (distance < diameter){
+            // update new particle's velocity and position halfway between each
+            for (int k = 0; k < 3; k++) {
+              x[i][k] = (x[i][k] + x[j][k]) / 2;
+              v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
+            }
+            // update new particle's mass
+            mass[i] += mass[j];
+
+            // remove j
+            for (int k=j; k<NumberOfBodies-1; k++){
+              x[k] = x[k+1];
+              v[k] = v[k+1];
+              mass[k] = mass[k+1];
+              forceMatrix[k] = forceMatrix[k+1];
+              bucketArray[k] = bucketArray[k+1];
+            }
+            if (j < i){
+              i -= 1;
+            }
+            j -= 1;
+            NumberOfBodies -= 1;
+          }
+        }
+      }    
+      timeStepsRemaining -= 1;
     }
   }
 
@@ -332,7 +349,6 @@ void updateBody() {
   t += timeStepSize;
 
   for (int i=0; i<startBodyCount; i++){
-    delete[] bucketArray[i];
     delete[] forceMatrix[i];
   }
   delete[] bucketArray;
