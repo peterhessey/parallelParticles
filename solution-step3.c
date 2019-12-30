@@ -199,7 +199,7 @@ void updateBody() {
   double diameter = 0.01;
 
   // initialising buckets
-  int numberOfBuckets = 2;
+  int numberOfBuckets = 10;
   int* bucketArray = new int[NumberOfBodies];
 
   for (int i=0; i<NumberOfBodies; i++){
@@ -410,6 +410,7 @@ int main(int argc, char** argv) {
 				<< ",\t dt="        << timeStepSize
 				<< ",\t v_max="     << maxV
 				<< ",\t dx_min="    << minDx
+        << ",\t numOfBodies = " << NumberOfBodies
 				<< std::endl;
 
       tPlot += tPlotDelta;
