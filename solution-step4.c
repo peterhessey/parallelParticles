@@ -12,6 +12,7 @@
 //
 // (C) 2018-2019 Tobias Weinzierl
 
+#include <omp.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -19,7 +20,6 @@
 #include <math.h>
 #include <limits>
 #include <iomanip>
-
 
 double t          = 0;
 double tFinal     = 0;
@@ -56,7 +56,6 @@ double   timeStepSize = 0.0;
  */
 double   maxV;
 
-
 /**
  * Minimum distance between two elements.
  */
@@ -68,7 +67,6 @@ double   minDx;
  *
  * This operation is not to be changed in the assignment.
  */
-
 void setUp(int argc, char** argv) {
   NumberOfBodies = (argc-4) / 7;
   /**
@@ -158,7 +156,7 @@ void printParaviewSnapshot() {
       << " <Piece NumberOfPoints=\"" << NumberOfBodies << "\">" << std::endl
       << "  <Points>" << std::endl
       << "   <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">";
-
+//      << "   <DataArray type=\"Float32\" NumberOfComponents=\"3\" format=\"ascii\">";
 
   for (int i=0; i<NumberOfBodies; i++) {
     out << x[i][0]
@@ -184,176 +182,88 @@ void printParaviewSnapshot() {
  */
 void updateBody() {
 
-  //  * Instead of creating 'actual' bucket objects and storing values in them, I 
-  //  * have instead allocated a bucket value to each particle. This is much more 
-  //  * efficient as one can iterate through the particles with ease and with 
-  //  * far fewer repititions. 
+  // setting the number of threads to be used
+  omp_set_num_threads(8);
+  
+  // variables for keeping track of the max velocity of any particle in the current frame
+  double currentV;
+  maxV   = 0.0;
 
-  // track initial body count for tidying up memory at the end (NumberOfBodies decreases on collision)
-  int startBodyCount = NumberOfBodies;
+  // variable for tracking the minimum distance between any two particles in the frame
+  minDx  = std::numeric_limits<double>::max();
 
-  // double for storing distance
-  double distance;
+  // -- parallelisable
 
-  // diameter of the particles
-  double diameter = 0.01;
-
-  // initialising buckets
-  int numberOfBuckets = 10;
-  int* bucketArray = new int[NumberOfBodies];
+  // force0 = force along x direction
+  // force1 = force along y direction
+  // force2 = force along z direction
+  double* force0 = new double[NumberOfBodies];
+  double* force1 = new double[NumberOfBodies];
+  double* force2 = new double[NumberOfBodies];
 
   for (int i=0; i<NumberOfBodies; i++){
-    bucketArray[i] = -1;
+    force0[i] = 0.0;
+    force1[i] = 0.0;
+    force2[i] = 0.0;
   }
 
-  // if first iteration of program, put all particles into first bucket
-  if (maxV == 0){
-    for (int i=0; i<NumberOfBodies; i++){
-      // put all bodies in bucket 0
-      bucketArray[i] = 0;
-    }
-  
-  }else{
-
-
-    double vBucket = maxV / numberOfBuckets;
-
-    // loop through all particles
-    for (int i=0; i<NumberOfBodies; i++){
-      // calculate particle's velocity
-      double particleVel = std::sqrt(
-          (v[i][0] * v[i][0]) +
-          (v[i][1] * v[i][1]) +
-          (v[i][2] * v[i][2])
-        );
-
-      // loop through all buckets, check if particle goes into that bucket 
-      for (int j=0; j<numberOfBuckets; j++){
-
-        if (((particleVel >= j*vBucket) && (particleVel < (j+1)*vBucket)) || ((j == numberOfBuckets -1) && particleVel >= maxV)){
-          bucketArray[i] = j;
-        }
-      }
-    }
-  }
-
-
-  // variable to track the minimum distance between any two particles
-  minDx  = std::numeric_limits<double>::max();
-  
-  // matrix that stores the forces acting on all particles in the scene
-  double** forceMatrix;
-  forceMatrix = new double*[NumberOfBodies];
-  
-  for (int i=0; i<NumberOfBodies; i++) {
-	  // one entry for each dimension (x,y,z)
-	  forceMatrix[i] = new double[3]{0.0, 0.0, 0.0};
-  }
-
-
-  // loop through all particles
-  for (int i = 0; i < NumberOfBodies; i++) {
-    
-    // set up looping based on buckets
-    int timeStepsToTake = pow(2, (bucketArray[i]));
-    int timeStepsRemaining = timeStepsToTake;
-    double miniTimeStepSize = timeStepSize / timeStepsToTake;
-  
-    // loop through all particles that i hasn't been compared to yet, calculate forces
-    for (int j = i + 1;  j < NumberOfBodies; j++) {
+  // -- iternal loop is paralleisable I believe
+  // -- parallelise with all-to-one reduction
+  // update each particle i
+  for (int i=0; i<NumberOfBodies; i++){    
+    // loop through all other particles
+    for (int j=i+1; j<NumberOfBodies; j++){
       
-      // Calculate the distance from particle i to particle j
-      distance = std::sqrt(
-            (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-            (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-            (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-          );
-  
-      // track minimum distance
+      double distance; 
+      
+      distance = sqrt(
+        (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
+        (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
+        (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
+      );
+      
+      double force0Change = (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
+      double force1Change = (x[j][1]-x[i][1]) * mass[j]*mass[i] / distance / distance / distance ;
+      double force2Change = (x[j][2]-x[i][2]) * mass[j]*mass[i] / distance / distance / distance ;
+
+      // x,y,z forces acting on particle i
+      force0[i] += force0Change;
+      force0[j] -= force0Change;
+
+      force1[i] += force1Change;
+      force1[j] -= force1Change;
+
+      force2[i] += force2Change;
+      force2[j] -= force2Change;
+
+      // keep track of the minimum distance between any two particles
       minDx = std::min( minDx,distance );
 
-      
-      // apply forces to each dimension k
-      for (int k = 0; k < 3; k++) {
-      
-        double force = (x[j][k]-x[i][k]) * mass[j] * mass[i] / distance / distance / distance ;
-        forceMatrix[i][k] += force;
-        forceMatrix[j][k] -= force;
-        
-      }
     }
 
-    double absV = 0;
-
-    for (int k=0; k<3; k++){
-      v[i][k] = v[i][k] + timeStepSize * forceMatrix[i][k] / mass[i];
-      absV += v[i][k] * v[i][k];
-    }
-    maxV = std::max(maxV, std::sqrt(absV));
-
-    // perform mini time steps, update position and check for collision
-    while (timeStepsRemaining > 0){
-      // update particle position
-      for (int k=0; k<3; k++){
-        x[i][k] += miniTimeStepSize * v[i][k];
-      }
-
-      // check for collision
-      for (int j=0; j<NumberOfBodies; j++){
-        // if i and j are not the same particle
-        if (i != j){          
-          distance = std::sqrt(
-            (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
-            (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
-            (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
-          );
+    // calculate new position based on velocity from last time step
+    x[i][0] = x[i][0] + timeStepSize * v[i][0];
+    x[i][1] = x[i][1] + timeStepSize * v[i][1];
+    x[i][2] = x[i][2] + timeStepSize * v[i][2];
 
 
-          // if a collision occurs
-          if (distance < diameter){
-            // update new particle's velocity and position halfway between each
-            for (int k = 0; k < 3; k++) {
-              x[i][k] = (x[i][k] + x[j][k]) / 2;
-              v[i][k] = (mass[i] / (mass[i] + mass[j])) * v[i][k] + (mass[j] / (mass[i] + mass[j])) * v[j][k];
-            }
-            // update new particle's mass
-            mass[i] += mass[j];
+    v[i][0] = v[i][0] + timeStepSize * force0[i] / mass[i];
+    v[i][1] = v[i][1] + timeStepSize * force1[i] / mass[i];
+    v[i][2] = v[i][2] + timeStepSize * force2[i] / mass[i];
+  
+    currentV = std::sqrt( v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2] );
 
-            // remove j
-            for (int k=j; k<NumberOfBodies-1; k++){
-              x[k] = x[k+1];
-              v[k] = v[k+1];
-              mass[k] = mass[k+1];
-              forceMatrix[k] = forceMatrix[k+1];
-              bucketArray[k] = bucketArray[k+1];
-            }
-            if (j < i){
-              i -= 1;
-            }
-            j -= 1;
-            NumberOfBodies -= 1;
-          }
-        }
-      }    
-      timeStepsRemaining -= 1;
-    }
-  }
-
-  // check to see if only one particle left
-  if (NumberOfBodies == 1){
-    // terminate
-    t = tFinal;
-    std::cout << "\n\n\nFinal particle coordinates: " << x[0][0] << ", " << x[0][1] << ", " << x[0][2] << "\n\n\n";
+    maxV = std::max( maxV, currentV );
+    
   }
 
   t += timeStepSize;
-
-  for (int i=0; i<startBodyCount; i++){
-    delete[] forceMatrix[i];
-  }
-  delete[] bucketArray;
-  delete[] forceMatrix;
+  
+  delete[] force0;
+  delete[] force1;
+  delete[] force2;
 }
+
 
 /**
  * Main routine.
@@ -361,7 +271,6 @@ void updateBody() {
  * Not to be changed in assignment.
  */
 int main(int argc, char** argv) {
-
   if (argc==1) {
     std::cerr << "usage: " + std::string(argv[0]) + " snapshot final-time dt objects" << std::endl
               << "  snapshot        interval after how many time units to plot. Use 0 to switch off plotting" << std::endl
