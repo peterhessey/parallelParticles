@@ -189,17 +189,19 @@ void updateBody() {
   // variable for tracking the minimum distance between any two particles in the frame
   minDx  = std::numeric_limits<double>::max();
 
-  // -- parallelisable
-
   double** forces = new double*[NumberOfBodies];
+  #pragma omp parallel for
   for (int i=0; i<NumberOfBodies; i++){
     forces[i] = new double[3]{0.0, 0.0, 0.0};
   }
-   
+  
+  int i;
+  int j;
+
   // update each particle i
-  for (int i=0; i<NumberOfBodies; i++){    
-    // loop through all other particles
-    for (int j=i+1; j<NumberOfBodies; j++){
+  #pragma omp for
+  for (i=0; i<NumberOfBodies; i++){    
+    for (j=i+1; j<NumberOfBodies; j++){
       
       double distance; 
       
@@ -233,8 +235,13 @@ void updateBody() {
     maxV = std::max( maxV, std::sqrt(absV));
     delete[] forces[i];
   }
-  delete[] forces;
-  t += timeStepSize;
+
+  #pragma omp critical
+  {    
+    delete[] forces;
+    t += timeStepSize;
+  }
+
 }
 
 
