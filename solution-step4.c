@@ -190,31 +190,28 @@ void updateBody() {
   minDx  = std::numeric_limits<double>::max();
 
   double** forces = new double*[NumberOfBodies];
+    
+  
+
   #pragma omp parallel for
   for (int i=0; i<NumberOfBodies; i++){
+  // std::cout<< "Body " << i << " handled by thread: " << omp_get_thread_num() << "\n";
     forces[i] = new double[3]{0.0, 0.0, 0.0};
   }
   
-  int i;
-  int j;
-
   // update each particle i
-  #pragma omp for
-  for (i=0; i<NumberOfBodies; i++){    
-    for (j=i+1; j<NumberOfBodies; j++){
-      
-      double distance; 
-      
-      distance = sqrt(
+  for (int i=0; i<NumberOfBodies; i++){  
+    #pragma omp parallel for reduction (min:minDx)
+    for (int j=i+1; j<NumberOfBodies; j++){
+      //::cout << "Particle " << j << " handled by thread: " << omp_get_thread_num() << "\n";
+      double distance = sqrt(
         (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
         (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
         (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
       );
       
-      double forceChange;
-      #pragma omp parallel for private(forceChange)
       for(int k=0; k<3; k++){
-        forceChange = (x[j][k]-x[i][k]) * mass[j]*mass[i] / distance / distance / distance ;
+        double forceChange = (x[j][k]-x[i][k]) * mass[j]*mass[i] / distance / distance / distance ;
         forces[i][k] += forceChange;
         forces[j][k] -= forceChange;
       }
@@ -222,10 +219,9 @@ void updateBody() {
       minDx = std::min( minDx,distance );
 
     }
-
+    
     double absV = 0.0;
     // calculate n
-    #pragma omp parallel for reduction(+:absV)
     for(int k=0; k<3; k++){
       x[i][k] = x[i][k] + timeStepSize * v[i][k];
       v[i][k] = v[i][k] + timeStepSize * forces[i][k] / mass[i];
@@ -234,14 +230,13 @@ void updateBody() {
 
     maxV = std::max( maxV, std::sqrt(absV));
     delete[] forces[i];
+  
   }
+    
+  delete[] forces;
+  t += timeStepSize;
 
-  #pragma omp critical
-  {    
-    delete[] forces;
-    t += timeStepSize;
-  }
-
+  //  t = tFinal + 1;  
 }
 
 
