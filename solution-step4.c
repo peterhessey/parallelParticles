@@ -223,6 +223,7 @@ void updateBody() {
 
     double absV = 0.0;
     // calculate n
+    #pragma omp parallel for reduction(+:absV)
     for(int k=0; k<3; k++){
       x[i][k] = x[i][k] + timeStepSize * v[i][k];
       v[i][k] = v[i][k] + timeStepSize * forces[i][k] / mass[i];
