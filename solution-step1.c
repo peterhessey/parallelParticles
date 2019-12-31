@@ -12,6 +12,7 @@
 //
 // (C) 2018-2019 Tobias Weinzierl
 
+#include <omp.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -19,7 +20,6 @@
 #include <math.h>
 #include <limits>
 #include <iomanip>
-
 
 double t          = 0;
 double tFinal     = 0;
@@ -189,19 +189,13 @@ void updateBody() {
   // variable for tracking the minimum distance between any two particles in the frame
   minDx  = std::numeric_limits<double>::max();
 
-  // force0 = force along x direction
-  // force1 = force along y direction
-  // force2 = force along z direction
-  double* force0 = new double[NumberOfBodies];
-  double* force1 = new double[NumberOfBodies];
-  double* force2 = new double[NumberOfBodies];
+  // -- parallelisable
 
+  double** forces = new double*[NumberOfBodies];
   for (int i=0; i<NumberOfBodies; i++){
-    force0[i] = 0.0;
-    force1[i] = 0.0;
-    force2[i] = 0.0;
+    forces[i] = new double[3]{0.0, 0.0, 0.0};
   }
-
+   
   // update each particle i
   for (int i=0; i<NumberOfBodies; i++){    
     // loop through all other particles
@@ -215,46 +209,29 @@ void updateBody() {
         (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
       );
       
-      double force0Change = (x[j][0]-x[i][0]) * mass[j]*mass[i] / distance / distance / distance ;
-      double force1Change = (x[j][1]-x[i][1]) * mass[j]*mass[i] / distance / distance / distance ;
-      double force2Change = (x[j][2]-x[i][2]) * mass[j]*mass[i] / distance / distance / distance ;
-
-      // x,y,z forces acting on particle i
-      force0[i] += force0Change;
-      force0[j] -= force0Change;
-
-      force1[i] += force1Change;
-      force1[j] -= force1Change;
-
-      force2[i] += force2Change;
-      force2[j] -= force2Change;
-
+      for(int k=0; k<3; k++){
+        double forceChange = (x[j][k]-x[i][k]) * mass[j]*mass[i] / distance / distance / distance ;
+        forces[i][k] += forceChange;
+        forces[j][k] -= forceChange;
+      }
       // keep track of the minimum distance between any two particles
       minDx = std::min( minDx,distance );
 
     }
 
-    // calculate new position based on velocity from last time step
-    x[i][0] = x[i][0] + timeStepSize * v[i][0];
-    x[i][1] = x[i][1] + timeStepSize * v[i][1];
-    x[i][2] = x[i][2] + timeStepSize * v[i][2];
+    double absV = 0.0;
+    // calculate n
+    for(int k=0; k<3; k++){
+      x[i][k] = x[i][k] + timeStepSize * v[i][k];
+      v[i][k] = v[i][k] + timeStepSize * forces[i][k] / mass[i];
+      absV += v[i][k] * v[i][k];
+    }
 
-
-    v[i][0] = v[i][0] + timeStepSize * force0[i] / mass[i];
-    v[i][1] = v[i][1] + timeStepSize * force1[i] / mass[i];
-    v[i][2] = v[i][2] + timeStepSize * force2[i] / mass[i];
-  
-    currentV = std::sqrt( v[i][0]*v[i][0] + v[i][1]*v[i][1] + v[i][2]*v[i][2] );
-
-    maxV = std::max( maxV, currentV );
-    
+    maxV = std::max( maxV, std::sqrt(absV));
+    delete[] forces[i];
   }
-
+  delete[] forces;
   t += timeStepSize;
-  
-  delete[] force0;
-  delete[] force1;
-  delete[] force2;
 }
 
 
