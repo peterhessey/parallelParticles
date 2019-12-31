@@ -209,8 +209,10 @@ void updateBody() {
         (x[i][2]-x[j][2]) * (x[i][2]-x[j][2])
       );
       
+      double forceChange;
+      #pragma omp parallel for private(forceChange)
       for(int k=0; k<3; k++){
-        double forceChange = (x[j][k]-x[i][k]) * mass[j]*mass[i] / distance / distance / distance ;
+        forceChange = (x[j][k]-x[i][k]) * mass[j]*mass[i] / distance / distance / distance ;
         forces[i][k] += forceChange;
         forces[j][k] -= forceChange;
       }
