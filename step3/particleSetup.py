@@ -1,7 +1,7 @@
 import random
 with open('particles.txt', 'w') as particleOutput:
     for i in range(500):
-        for j in range(4):
+        for j in range(40):
             particleOutput.write(str(i*5) + ' ')
             particleOutput.write(str(j*5) + ' ')
             particleOutput.write('0 ')
