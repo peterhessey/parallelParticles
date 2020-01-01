@@ -68,8 +68,8 @@ double   minDx;
  * This operation is not to be changed in the assignment.
  */
 void setUp() {
-  omp_set_num_threads(8);
-  NumberOfBodies = 16000;
+  //omp_set_num_threads(4);
+  NumberOfBodies = 100000;
   /**
    * Initialising the partciles. x stores coordinates of all particles, 
    * v all the velocities and 
@@ -81,7 +81,7 @@ void setUp() {
 
 
   tPlotDelta   = -0.01;
-  tFinal       = 1.0;
+  tFinal       = 0.05;
   timeStepSize = 0.01;
 
   for (int i=0; i<NumberOfBodies; i++) {

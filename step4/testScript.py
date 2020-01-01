@@ -6,14 +6,12 @@ import numpy as np
 import random
 from matplotlib import pyplot as plt
 
-args = []
 
 for i in range(2):
     if i == 0:
-        args.append('assignment4NoParallel.exe')
+        args = ['assignment4NoParallel.exe']
     else:
-        args.append('assignment4.exe')
-
+        args = ['assignment4.exe']
     start_time = time.time()
 
     process = subprocess.Popen(args, stdout=subprocess.PIPE)
