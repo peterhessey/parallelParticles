@@ -67,8 +67,9 @@ double   minDx;
  *
  * This operation is not to be changed in the assignment.
  */
-void setUp(int argc, char** argv) {
-  NumberOfBodies = (argc-4) / 7;
+void setUp() {
+  omp_set_num_threads(8);
+  NumberOfBodies = 16000;
   /**
    * Initialising the partciles. x stores coordinates of all particles, 
    * v all the velocities and 
@@ -78,30 +79,24 @@ void setUp(int argc, char** argv) {
   v    = new double*[NumberOfBodies];
   mass = new double [NumberOfBodies];
 
-  int readArgument = 1;
 
-  tPlotDelta   = std::stof(argv[readArgument]); readArgument++;
-  tFinal       = std::stof(argv[readArgument]); readArgument++;
-  timeStepSize = std::stof(argv[readArgument]); readArgument++;
+  tPlotDelta   = -0.01;
+  tFinal       = 1.0;
+  timeStepSize = 0.01;
 
   for (int i=0; i<NumberOfBodies; i++) {
     x[i] = new double[3];
     v[i] = new double[3];
 
-    x[i][0] = std::stof(argv[readArgument]); readArgument++;
-    x[i][1] = std::stof(argv[readArgument]); readArgument++;
-    x[i][2] = std::stof(argv[readArgument]); readArgument++;
+    x[i][0] = i * 5;
+    x[i][1] = i * 5;
+    x[i][2] = 0;
 
-    v[i][0] = std::stof(argv[readArgument]); readArgument++;
-    v[i][1] = std::stof(argv[readArgument]); readArgument++;
-    v[i][2] = std::stof(argv[readArgument]); readArgument++;
+    v[i][0] = 0;
+    v[i][1] = 0;
+    v[i][2] = 0;
 
-    mass[i] = std::stof(argv[readArgument]); readArgument++;
-
-    if (mass[i]<=0.0 ) {
-      std::cerr << "invalid mass for body " << i << std::endl;
-      exit(-2);
-    }
+    mass[i] = 1;
   }
 
   std::cout << "created setup with " << NumberOfBodies << " bodies" << std::endl;
@@ -246,32 +241,32 @@ void updateBody() {
  * Not to be changed in assignment.
  */
 int main(int argc, char** argv) {
-  if (argc==1) {
-    std::cerr << "usage: " + std::string(argv[0]) + " snapshot final-time dt objects" << std::endl
-              << "  snapshot        interval after how many time units to plot. Use 0 to switch off plotting" << std::endl
-              << "  final-time      simulated time (greater 0)" << std::endl
-              << "  dt              time step size (greater 0)" << std::endl
-              << std::endl
-              << "Examples:" << std::endl
-              << "0.01  100.0  0.001    0.0 0.0 0.0  1.0 0.0 0.0  1.0 \t One body moving form the coordinate system's centre along x axis with speed 1" << std::endl
-              << "0.01  100.0  0.001    0.0 0.0 0.0  1.0 0.0 0.0  1.0     0.0 1.0 0.0  1.0 0.0 0.0  1.0  \t One spiralling around the other one" << std::endl
-              << "0.01  100.0  0.001    3.0 0.0 0.0  0.0 1.0 0.0  0.4     0.0 0.0 0.0  0.0 0.0 0.0  0.2     2.0 0.0 0.0  0.0 0.0 0.0  1.0 \t Three body setup from first lecture" << std::endl
-              << "0.01  100.0  0.001    3.0 0.0 0.0  0.0 1.0 0.0  0.4     0.0 0.0 0.0  0.0 0.0 0.0  0.2     2.0 0.0 0.0  0.0 0.0 0.0  1.0     2.0 1.0 0.0  0.0 0.0 0.0  1.0     2.0 0.0 1.0  0.0 0.0 0.0  1.0 \t Five body setup" << std::endl
-              << std::endl
-              << "In this naive code, only the first body moves" << std::endl;
+  // if (argc==1) {
+  //   std::cerr << "usage: " + std::string(argv[0]) + " snapshot final-time dt objects" << std::endl
+  //             << "  snapshot        interval after how many time units to plot. Use 0 to switch off plotting" << std::endl
+  //             << "  final-time      simulated time (greater 0)" << std::endl
+  //             << "  dt              time step size (greater 0)" << std::endl
+  //             << std::endl
+  //             << "Examples:" << std::endl
+  //             << "0.01  100.0  0.001    0.0 0.0 0.0  1.0 0.0 0.0  1.0 \t One body moving form the coordinate system's centre along x axis with speed 1" << std::endl
+  //             << "0.01  100.0  0.001    0.0 0.0 0.0  1.0 0.0 0.0  1.0     0.0 1.0 0.0  1.0 0.0 0.0  1.0  \t One spiralling around the other one" << std::endl
+  //             << "0.01  100.0  0.001    3.0 0.0 0.0  0.0 1.0 0.0  0.4     0.0 0.0 0.0  0.0 0.0 0.0  0.2     2.0 0.0 0.0  0.0 0.0 0.0  1.0 \t Three body setup from first lecture" << std::endl
+  //             << "0.01  100.0  0.001    3.0 0.0 0.0  0.0 1.0 0.0  0.4     0.0 0.0 0.0  0.0 0.0 0.0  0.2     2.0 0.0 0.0  0.0 0.0 0.0  1.0     2.0 1.0 0.0  0.0 0.0 0.0  1.0     2.0 0.0 1.0  0.0 0.0 0.0  1.0 \t Five body setup" << std::endl
+  //             << std::endl
+  //             << "In this naive code, only the first body moves" << std::endl;
 
-    return -1;
-  }
-  else if ( (argc-4)%7!=0 ) {
-    std::cerr << "error in arguments: each planet is given by seven entries (position, velocity, mass)" << std::endl;
-    std::cerr << "got " << argc << " arguments (three of them are reserved)" << std::endl;
-    std::cerr << "run without arguments for usage instruction" << std::endl;
-    return -2;
-  }
+  //   return -1;
+  // }
+  // else if ( (argc-4)%7!=0 ) {
+  //   std::cerr << "error in arguments: each planet is given by seven entries (position, velocity, mass)" << std::endl;
+  //   std::cerr << "got " << argc << " arguments (three of them are reserved)" << std::endl;
+  //   std::cerr << "run without arguments for usage instruction" << std::endl;
+  //   return -2;
+  // }
 
   std::cout << std::setprecision(15);
 
-  setUp(argc,argv);
+  setUp();
 
   openParaviewVideoFile();
 
