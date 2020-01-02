@@ -202,12 +202,15 @@ void updateBody() {
   int numberOfBuckets = 10;
   int* bucketArray = new int[NumberOfBodies];
 
+  #pragma omp parallel for
   for (int i=0; i<NumberOfBodies; i++){
     bucketArray[i] = -1;
   }
 
   // if first iteration of program, put all particles into first bucket
   if (maxV == 0){
+    
+    #pragma omp parallel for
     for (int i=0; i<NumberOfBodies; i++){
       // put all bodies in bucket 0
       bucketArray[i] = 0;
@@ -219,6 +222,9 @@ void updateBody() {
     double vBucket = maxV / numberOfBuckets;
 
     // loop through all particles
+    
+
+    #pragma omp parallel for collapse(2)
     for (int i=0; i<NumberOfBodies; i++){
       // calculate particle's velocity
       double particleVel = std::sqrt(
