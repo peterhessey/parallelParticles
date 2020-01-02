@@ -70,8 +70,6 @@ double   minDx;
 void setUp(int argc, char **argv) {
 
   NumberOfBodies = std::stof(argv[1]);
-  NumberOfThreads = std::stof(argv[2]);
-
 
   // std::cout << "Testing with " << numberOfThreads << " threads on " << NumberOfBodies << " bodies." << std::endl;
   
@@ -183,7 +181,6 @@ void printParaviewSnapshot() {
 void updateBody() {
 
 
-
   // variables for keeping track of the max velocity of any particle in the current frame
   double currentV;
   maxV   = 0.0;
@@ -194,8 +191,8 @@ void updateBody() {
   double** forces = new double*[NumberOfBodies];
     
   
-  omp_set_dynamic(0);
-  omp_set_num_threads(NumberOfThreads);
+  // omp_set_dynamic(0);
+  // omp_set_num_threads(NumberOfThreads);
 
   #pragma omp parallel for
   for (int i=0; i<NumberOfBodies; i++){
@@ -207,7 +204,7 @@ void updateBody() {
   for (int i=0; i<NumberOfBodies; i++){  
     #pragma omp parallel for reduction (min:minDx)
     for (int j=i+1; j<NumberOfBodies; j++){
-      // std::cout << "Particle " << j << " handled by thread: " << omp_get_thread_num() << "\n";
+      //::cout << "Particle " << j << " handled by thread: " << omp_get_thread_num() << "\n";
       double distance = sqrt(
         (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
         (x[i][1]-x[j][1]) * (x[i][1]-x[j][1]) +
@@ -270,7 +267,7 @@ int main(int argc, char** argv) {
   //   std::cerr << "error in arguments: each planet is given by seven entries (position, velocity, mass)" << std::endl;
   //   std::cerr << "got " << argc << " arguments (three of them are reserved)" << std::endl;
   //   std::cerr << "run without arguments for usage instruction" << std::endl;
-  //   return -2; 
+  //   return -2;
   // }
 
   std::cout << std::setprecision(15);
