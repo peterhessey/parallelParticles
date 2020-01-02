@@ -68,8 +68,9 @@ double   minDx;
  * This operation is not to be changed in the assignment.
  */
 void setUp() {
-  //omp_set_num_threads(4);
-  NumberOfBodies = 100000;
+  omp_set_num_threads(8);
+  std::cout<< omp_get_num_procs() << std::endl;
+  NumberOfBodies = 1000;
   /**
    * Initialising the partciles. x stores coordinates of all particles, 
    * v all the velocities and 

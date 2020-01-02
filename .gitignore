@@ -1,3 +1,5 @@
+# venv
+venv/
 # Paraview files
 *.vtp
 *.pvd

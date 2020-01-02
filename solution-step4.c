@@ -181,8 +181,8 @@ void printParaviewSnapshot() {
  * This is the only operation you are allowed to change in the assignment.
  */
 void updateBody() {
-  omp_set_num_threads(8);
-
+  omp_set_num_threads(2);
+  std::cout << omp_get_num_procs() << std::endl;
   // variables for keeping track of the max velocity of any particle in the current frame
   double currentV;
   maxV   = 0.0;
@@ -202,7 +202,7 @@ void updateBody() {
   
   // update each particle i
   for (int i=0; i<NumberOfBodies; i++){  
-    #pragma omp parallel for reduction (min:minDx)
+    #pragma omp parallel reduction(min:minDx)
     for (int j=i+1; j<NumberOfBodies; j++){
       //::cout << "Particle " << j << " handled by thread: " << omp_get_thread_num() << "\n";
       double distance = sqrt(
