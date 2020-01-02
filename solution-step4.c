@@ -181,8 +181,7 @@ void printParaviewSnapshot() {
  * This is the only operation you are allowed to change in the assignment.
  */
 void updateBody() {
-  omp_set_num_threads(2);
-  std::cout << omp_get_num_procs() << std::endl;
+
   // variables for keeping track of the max velocity of any particle in the current frame
   double currentV;
   maxV   = 0.0;
