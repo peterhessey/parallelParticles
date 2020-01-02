@@ -12,6 +12,7 @@
 //
 // (C) 2018-2019 Tobias Weinzierl
 
+#include <omp.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -204,6 +205,7 @@ void updateBody() {
 
   #pragma omp parallel for
   for (int i=0; i<NumberOfBodies; i++){
+    // std::cout << "Bucket " << i << " set up on thread: " << omp_get_thread_num() << "\n";
     bucketArray[i] = -1;
   }
 
@@ -221,24 +223,23 @@ void updateBody() {
 
     double vBucket = maxV / numberOfBuckets;
 
-    // loop through all particles
-    
-
-    #pragma omp parallel for collapse(2)
+    // loop through all particles    
+    #pragma omp parallel for
     for (int i=0; i<NumberOfBodies; i++){
-      // calculate particle's velocity
-      double particleVel = std::sqrt(
+        double particleVel = sqrt(
           (v[i][0] * v[i][0]) +
           (v[i][1] * v[i][1]) +
           (v[i][2] * v[i][2])
         );
-
-      // loop through all buckets, check if particle goes into that bucket 
+      // loop through all buckets, check if particle goes into that
       for (int j=0; j<numberOfBuckets; j++){
-
+      
         if (((particleVel >= j*vBucket) && (particleVel < (j+1)*vBucket)) || ((j == numberOfBuckets -1) && particleVel >= maxV)){
-          bucketArray[i] = j;
+         
+            bucketArray[i] = j;
+          
         }
+        
       }
     }
   }
@@ -252,6 +253,7 @@ void updateBody() {
   double** forceMatrix;
   forceMatrix = new double*[NumberOfBodies];
   
+  #pragma parallel for
   for (int i=0; i<NumberOfBodies; i++) {
 	  // one entry for each dimension (x,y,z)
 	  forceMatrix[i] = new double[3]{0.0, 0.0, 0.0};
@@ -259,6 +261,8 @@ void updateBody() {
 
 
   // loop through all particles
+
+  // cannot parallelise first loop - too many dependencies
   for (int i = 0; i < NumberOfBodies; i++) {
     
     // set up looping based on buckets
@@ -267,8 +271,9 @@ void updateBody() {
     double miniTimeStepSize = timeStepSize / timeStepsToTake;
   
     // loop through all particles that i hasn't been compared to yet, calculate forces
+    #pragma omp parallel for reduction (min:minDx)
     for (int j = i + 1;  j < NumberOfBodies; j++) {
-      
+
       // Calculate the distance from particle i to particle j
       distance = std::sqrt(
             (x[i][0]-x[j][0]) * (x[i][0]-x[j][0]) +
@@ -284,8 +289,12 @@ void updateBody() {
       for (int k = 0; k < 3; k++) {
       
         double force = (x[j][k]-x[i][k]) * mass[j] * mass[i] / distance / distance / distance ;
-        forceMatrix[i][k] += force;
-        forceMatrix[j][k] -= force;
+        // critical to avoid read/write clashes
+        #pragma omp critical
+        {
+          forceMatrix[i][k] += force;
+          forceMatrix[j][k] -= force;
+        }
         
       }
     }
@@ -306,6 +315,7 @@ void updateBody() {
       }
 
       // check for collision
+      // can't parallelise collisions, way too many dependencies
       for (int j=0; j<NumberOfBodies; j++){
         // if i and j are not the same particle
         if (i != j){          
@@ -318,6 +328,8 @@ void updateBody() {
 
           // if a collision occurs
           if (distance < diameter){
+            // if a collision occurs then allocate ONLY one thread to deal with it
+          
             // update new particle's velocity and position halfway between each
             for (int k = 0; k < 3; k++) {
               x[i][k] = (x[i][k] + x[j][k]) / 2;
@@ -327,6 +339,7 @@ void updateBody() {
             mass[i] += mass[j];
 
             // remove j
+            // can't parallelise
             for (int k=j; k<NumberOfBodies-1; k++){
               x[k] = x[k+1];
               v[k] = v[k+1];
@@ -339,6 +352,7 @@ void updateBody() {
             }
             j -= 1;
             NumberOfBodies -= 1;
+          
           }
         }
       }    
@@ -360,6 +374,7 @@ void updateBody() {
   }
   delete[] bucketArray;
   delete[] forceMatrix;
+  
 }
 
 /**

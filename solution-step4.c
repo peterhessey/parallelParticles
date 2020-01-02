@@ -201,7 +201,7 @@ void updateBody() {
   
   // update each particle i
   for (int i=0; i<NumberOfBodies; i++){  
-    #pragma omp parallel reduction(min:minDx)
+    #pragma omp parallel for reduction(min:minDx)
     for (int j=i+1; j<NumberOfBodies; j++){
       //::cout << "Particle " << j << " handled by thread: " << omp_get_thread_num() << "\n";
       double distance = sqrt(
